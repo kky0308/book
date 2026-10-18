@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>북로그 BookLog</title>
+  <meta name="description" content="감성을 나누는 책 공감 공간, 북로그">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: { extend: { colors: {
+        cream: '#fbf6ee', peach: '#f4b8a0', sage: '#b7cdb4', lavender: '#cdc3e8', butter: '#f7e3a1', cocoa: '#5a4636'
+      } } }
+    };
+    // 깜빡임 방지: 렌더 전에 테마 적용
+    try {
+      var t = (localStorage.getItem('booklog:theme') || '').replace(/"/g, '');
+      if (t === 'dark' || (!t && matchMedia('(prefers-color-scheme: dark)').matches)) document.documentElement.classList.add('dark');
+    } catch (e) {}
+  </script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-cream text-cocoa dark:bg-stone-900 dark:text-stone-200 transition-colors">
+
+  <!-- GNB -->
+  <header class="sticky top-0 z-30 bg-cream/90 dark:bg-stone-900/90 backdrop-blur border-b border-peach/40 dark:border-stone-700">
+    <div class="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between gap-3">
+      <a href="#home" class="font-serif text-xl font-bold whitespace-nowrap">📖 북로그</a>
+      <nav id="gnb" class="flex gap-1 text-sm overflow-x-auto" aria-label="주 메뉴">
+        <a href="#home" data-tab="home" class="tab-link">홈</a>
+        <a href="#reviews" data-tab="reviews" class="tab-link">독후감</a>
+        <a href="#recs" data-tab="recs" class="tab-link">도서 추천</a>
+        <a href="#mypage" data-tab="mypage" class="tab-link">마이페이지</a>
+      </nav>
+      <button id="themeBtn" class="shrink-0 w-9 h-9 rounded-full hover:bg-peach/30 dark:hover:bg-stone-700" aria-label="다크 모드 전환" title="다크 모드 전환">🌙</button>
+    </div>
+  </header>
+
+  <!-- 오늘의 명언 -->
+  <section class="bg-gradient-to-r from-butter/60 via-peach/40 to-lavender/60 dark:from-stone-800 dark:via-stone-800 dark:to-stone-800">
+    <div class="max-w-5xl mx-auto px-4 py-6 text-center">
+      <p class="text-xs tracking-widest opacity-70 mb-1">오늘의 독서 명언</p>
+      <blockquote id="quoteText" class="font-serif text-lg sm:text-xl leading-relaxed"></blockquote>
+      <p id="quoteFrom" class="text-sm opacity-70 mt-1"></p>
+    </div>
+  </section>
+
+  <main class="max-w-5xl mx-auto px-4 py-8">
+
+    <!-- 홈: 베스트셀러 -->
+    <section data-panel="home" class="panel">
+      <h2 class="sec-title">🏆 이번 주 베스트셀러</h2>
+      <p class="text-sm opacity-70 mb-4">책을 누르면 별점·한줄평과 관련 독후감을 볼 수 있어요.</p>
+      <div id="bestGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4"></div>
+    </section>
+
+    <!-- 독후감 -->
+    <section data-panel="reviews" class="panel hidden">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="sec-title !mb-0">✍️ 독후감 공유</h2>
+        <button id="newReviewBtn" class="btn-primary">독후감 쓰기</button>
+      </div>
+      <div id="reviewList" class="grid sm:grid-cols-2 gap-4"></div>
+    </section>
+
+    <!-- 도서 추천 -->
+    <section data-panel="recs" class="panel hidden">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="sec-title !mb-0">💌 이런 책 어때요?</h2>
+        <button id="newRecBtn" class="btn-primary">추천 등록하기</button>
+      </div>
+      <div id="recList" class="grid sm:grid-cols-2 gap-4"></div>
+    </section>
+
+    <!-- 마이페이지 -->
+    <section data-panel="mypage" class="panel hidden">
+      <h2 class="sec-title">📊 나의 독서 기록</h2>
+      <div id="stats" class="grid grid-cols-3 gap-3 mb-6"></div>
+      <div class="flex items-center gap-2 mb-6">
+        <label for="nickInput" class="text-sm">내 닉네임</label>
+        <input id="nickInput" maxlength="12" class="field !w-40" placeholder="익명">
+      </div>
+      <h3 class="font-bold mb-3">내가 쓴 독후감</h3>
+      <div id="myList" class="grid sm:grid-cols-2 gap-4"></div>
+    </section>
+  </main>
+
+  <footer class="text-center text-xs opacity-60 py-8">
+    BookLog · 데이터는 이 브라우저(LocalStorage)에만 저장됩니다.
+  </footer>
+
+  <!-- 도서 상세 모달 -->
+  <div id="bookModal" class="modal hidden" role="dialog" aria-modal="true">
+    <div class="modal-box max-w-2xl">
+      <button class="modal-close" data-close aria-label="닫기">✕</button>
+      <div id="bookDetail"></div>
+    </div>
+  </div>
+
+  <!-- 독후감 작성 모달 -->
+  <div id="reviewModal" class="modal hidden" role="dialog" aria-modal="true">
+    <form id="reviewForm" class="modal-box max-w-lg space-y-3">
+      <button type="button" class="modal-close" data-close aria-label="닫기">✕</button>
+      <h3 class="font-serif text-lg font-bold">독후감 쓰기</h3>
+      <input name="book" required maxlength="60" class="field" placeholder="책 이름">
+      <input name="title" required maxlength="60" class="field" placeholder="독후감 제목">
+      <div class="flex items-center gap-2"><span class="text-sm">별점</span><div id="reviewStars"></div></div>
+      <textarea name="body" required rows="6" maxlength="3000" class="field" placeholder="책을 읽고 느낀 점을 자유롭게 적어보세요"></textarea>
+      <button class="btn-primary w-full">등록</button>
+    </form>
+  </div>
+
+  <!-- 추천 등록 모달 -->
+  <div id="recModal" class="modal hidden" role="dialog" aria-modal="true">
+    <form id="recForm" class="modal-box max-w-lg space-y-3">
+      <button type="button" class="modal-close" data-close aria-label="닫기">✕</button>
+      <h3 class="font-serif text-lg font-bold">책 추천하기</h3>
+      <input name="theme" required maxlength="40" class="field" placeholder="상황/테마 (예: 비 오는 날 읽기 좋은 소설)">
+      <input name="book" required maxlength="60" class="field" placeholder="책 제목">
+      <textarea name="reason" required rows="4" maxlength="500" class="field" placeholder="추천 이유"></textarea>
+      <input name="nick" maxlength="12" class="field" placeholder="닉네임 (비우면 익명)">
+      <button class="btn-primary w-full">등록</button>
+    </form>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+  <script src="script.js"></script>
+</body>
+</html>
